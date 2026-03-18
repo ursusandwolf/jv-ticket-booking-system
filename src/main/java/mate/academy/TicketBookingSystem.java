@@ -10,12 +10,13 @@ import java.util.concurrent.TimeUnit;
 
 public class TicketBookingSystem {
 
+    public static final int THREAD_POOL = 4;
     private final Semaphore tickets;
     private final ExecutorService executor;
 
     public TicketBookingSystem(int totalSeats) {
         tickets = new Semaphore(totalSeats);
-        executor = Executors.newFixedThreadPool(totalSeats);
+        executor = Executors.newFixedThreadPool(THREAD_POOL);
     }
 
     public BookingResult attemptBooking(String user) {
@@ -48,14 +49,8 @@ public class TicketBookingSystem {
                 System.out.println(name + " failed to acquire");
                 return false;
             }
-            try {
-                System.out.println(name + " acquired the access");
-                // critical section
-                return true;
-            } finally {
-                System.out.println(name + " is going to release the access");
-                semaphore.release();
-            }
+            System.out.println(name + " acquired the access");
+            return true;
         }
     }
 }
