@@ -18,14 +18,16 @@ public class TicketBookingSystem {
         // or the caller, avoiding internal thread leaks and redundant pool overhead.
         
         try {
-            // README states: "The thread must acquire a semaphore before proceeding with the booking."
+            // README states: "The thread must acquire a semaphore before proceeding
+            // with the booking."
             boolean acquired = semaphore.tryAcquire(2, TimeUnit.SECONDS);
             
             if (acquired) {
                 // README states: "If the semaphore is acquired, it means a seat is available, 
                 // and the booking can proceed."
                 
-                // Note: The README mentions "Once the booking is confirmed, the semaphore is released, 
+                // Note: The README mentions "Once the booking is confirmed, the semaphore is
+                // released,
                 // decrementing the count of available seats." 
                 // In Java's Semaphore, acquire() decrements the count and release() increments it.
                 // To keep the seat booked (decrementing total available), we do NOT call release() 
