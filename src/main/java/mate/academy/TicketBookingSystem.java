@@ -1,56 +1,42 @@
 package mate.academy;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 public class TicketBookingSystem {
-
-    public static final int THREAD_POOL = 4;
-    private final Semaphore tickets;
-    private final ExecutorService executor;
+    private final Semaphore semaphore;
 
     public TicketBookingSystem(int totalSeats) {
-        tickets = new Semaphore(totalSeats);
-        executor = Executors.newFixedThreadPool(THREAD_POOL);
+        // As per README: "The semaphore count would be initialized to the total 
+        // number of available seats for a show."
+        this.semaphore = new Semaphore(totalSeats);
     }
 
     public BookingResult attemptBooking(String user) {
-        Customer customer = new Customer(user, tickets);
-        Future<Boolean> future = executor.submit(customer);
+        // README states: "Each booking attempt by a user is handled by a separate thread."
+        // In this implementation, the separate thread is managed by the test environment
+        // or the caller, avoiding internal thread leaks and redundant pool overhead.
+        
         try {
-            if (future.get()) {
+            // README states: "The thread must acquire a semaphore before proceeding with the booking."
+            boolean acquired = semaphore.tryAcquire(2, TimeUnit.SECONDS);
+            
+            if (acquired) {
+                // README states: "If the semaphore is acquired, it means a seat is available, 
+                // and the booking can proceed."
+                
+                // Note: The README mentions "Once the booking is confirmed, the semaphore is released, 
+                // decrementing the count of available seats." 
+                // In Java's Semaphore, acquire() decrements the count and release() increments it.
+                // To keep the seat booked (decrementing total available), we do NOT call release() 
+                // after a successful booking.
                 return new BookingResult(user, true, "Booking successful.");
             } else {
                 return new BookingResult(user, false, "No seats available.");
             }
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public class Customer implements Callable<Boolean> {
-        private String name;
-        private Semaphore semaphore;
-
-        public Customer(String name, Semaphore semaphore) {
-            this.name = name;
-            this.semaphore = semaphore;
-        }
-
-        @Override
-        public Boolean call() throws InterruptedException {
-            boolean acquired = semaphore.tryAcquire(2, TimeUnit.SECONDS);
-            if (!acquired) {
-                System.out.println(name + " failed to acquire");
-                return false;
-            }
-            System.out.println(name + " acquired the access");
-            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return new BookingResult(user, false, "Booking interrupted.");
         }
     }
 }
